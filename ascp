@@ -1,0 +1,54 @@
+#!/usr/bin/expect -f
+
+# Downloads a file from a URL, uploads it via scp to specified location.
+# useage: <script> <URL> <filename_at_target_location>
+
+# Procedure for downloading file from web.
+proc download {url filename} {
+    spawn wget -nc -nv $url -O $filename
+    expect 
+    close $spawn_id
+}
+
+
+# Procedure for uploading file to server.
+proc upload {filename} {
+    spawn scp -P 22 "$filename" "user@host:/path"               # EDIT AS NEEDED
+    expect {
+        -re ".*es.*o.*" {
+            exp_send "yes\r"
+                exp_continue
+        }
+        -re ".*sword.*" {
+            exp_send "<password>\r"                             # EDIT AS NEEDED
+        }
+    }
+    interact
+    close $spawn_id
+}
+
+
+# Procedure for removing the temporary file again.
+proc cleanup {filename} {
+    spawn rm $filename
+    expect
+    close $spawn_id
+}
+
+
+# If command line arguments given iterate over them and upload
+# them to server, otherwise exit.
+if { $::argc == 2 } {
+    set url       [lindex $argv 0]
+    set filename  "/tmp/[lindex $argv 1]"
+    #set uploaddir [lindex $argv 2]
+
+    download $url $filename
+    upload $filename
+    cleanup $filename
+
+    exit 0
+} else {
+    puts "no command line argument passed"
+    exit 1
+}
